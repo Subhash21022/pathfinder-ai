@@ -61,19 +61,8 @@ Requirements:
     return coverLetter;
   } catch (error) {
     console.error("Error generating cover letter, using fallback:", error);
-    const errorCode = error?.code || "UNKNOWN";  // ← add this line
+    const errorCode = error?.code || "UNKNOWN";
 
-    const fallbackContent = `...`; // keep existing fallback content
-    
-    const coverLetter = await db.coverLetter.create({
-      data: {
-        ...
-        status: "fallback",
-        userId: user.id,
-      },
-    });
-  
-    return { ...coverLetter, _errorCode: errorCode };
     const fallbackContent = `
 # Cover Letter
 
@@ -100,7 +89,7 @@ ${user.name || "Candidate"}
       },
     });
 
-    return coverLetter;
+    return { ...coverLetter, _errorCode: errorCode };
   }
 }
 
