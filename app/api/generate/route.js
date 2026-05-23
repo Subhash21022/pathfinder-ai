@@ -1,10 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { generateGeminiContentStream } from "@/lib/gemini";
-import {
-  buildRateLimitResponse,
-  enforceRateLimit,
-  getRateLimitIdentifier,
-} from "@/lib/rate-limit";
+import { buildSecurePrompt } from "@/lib/prompt-safety";
 
 export async function POST(request) {
   const { userId } = await auth();
@@ -197,14 +193,12 @@ export async function POST(request) {
           return;
         }
 
-        const restrictedPrompt = `
-You are Pathfinder AI, a career-focused assistant.
-
-Only answer career-related questions.
-Politely refuse unrelated questions.
-
-User Query: ${prompt}
-`;
+        const restrictedPrompt = buildSecurePrompt({
+          task: "You are Pathfinder AI, a career-focused assistant. Only answer career-related questions. Politely refuse unrelated questions.",
+          untrustedData: [
+            { label: "userQuery", value: prompt, maxLength: 4000 },
+          ],
+        });
 
         const result = await generateGeminiContentStream(restrictedPrompt);
 
