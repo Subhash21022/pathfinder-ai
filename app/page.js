@@ -62,45 +62,59 @@ const isDarkMode = resolvedTheme === "dark";
       <HeroSection />
 
       {/* ─────────────  FEATURES  ───────────── */}
-      <section id="features" className="w-full py-12 md:py-24 lg:py-32 scroll-mt-20">
-        <div className="container mx-auto px-4 md:px-6">
-          <motion.h2
-            {...fadeUp()}
-            className="mb-12 text-center text-3xl font-bold tracking-tighter"
+ <section id="features" className="w-full py-12 md:py-24 lg:py-32 scroll-mt-20">
+  <div className="container mx-auto px-4 md:px-6">
+    <motion.h2
+      {...fadeUp()}
+      className="mb-12 text-center text-3xl font-bold tracking-tighter md:text-4xl"
+    >
+      Powerful Features for Your{" "}
+      <span className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
+        Career Growth
+      </span>
+    </motion.h2>
+
+    <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 items-stretch">
+      {features.map((f, i) => {
+        const Icon = f.icon;
+        return (
+          <motion.div
+            key={f.title}
+            {...fadeUp(i * 0.1)}
+            whileHover={{ scale: 1.03, y: -5 }}
+            className="h-full group"
           >
-            Powerful Features for Your Career Growth
-          </motion.h2>
+            <Card
+              className={`h-full min-h-[320px] border-2 border-border transition-all duration-300 ${f.borderHover} hover:shadow-2xl ${f.shadowHover} bg-card relative overflow-hidden`}
+            >
+              {/* Gradient overlay on hover */}
+              <div
+                className={`absolute inset-0 bg-gradient-to-br ${f.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500`}
+              />
 
-          <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 items-stretch">
-            {features.map((f, i) => (
-              <motion.div
-                key={f.title}
-                {...fadeUp(i * 0.1)}
-                whileHover={{ scale: 1.02 }}
-                className="h-full"
-              >
-                <Card className="h-full min-h-[320px] border-2 transition-colors duration-300 hover:border-primary">
-                  <CardContent className="flex h-full flex-col items-center gap-4 pt-8 text-center">
-                    
-                    <div className="mb-2">
-                      {f.icon}
-                    </div>
+              <CardContent className="flex h-full flex-col items-center gap-4 pt-8 text-center relative z-10">
+                {/* Icon with colored background */}
+                <div
+                  className={`mb-2 p-4 rounded-2xl ${f.bgLight} ${f.bgDark} transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6`}
+                >
+                  <Icon className={`w-10 h-10 ${f.textColor}`} />
+                </div>
 
-                    <h3 className="text-xl font-bold leading-snug">
-                      {f.title}
-                    </h3>
+                <h3 className="text-xl font-bold leading-snug">
+                  {f.title}
+                </h3>
 
-                    <p className="text-muted-foreground leading-relaxed">
-                      {f.description}
-                    </p>
-
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+                <p className="text-muted-foreground leading-relaxed">
+                  {f.description}
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        );
+      })}
+    </div>
+  </div>
+</section>
 
       {/* ───────────────  STATS  ────────────── */}
       <section id="stats" className="w-full  py-12 md:py-24 scroll-mt-20">
