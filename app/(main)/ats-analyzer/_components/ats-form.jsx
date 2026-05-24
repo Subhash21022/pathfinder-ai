@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useRef } from "react";
 import { analyzeATS } from "@/actions/ats";
-import { extractTextFromFile, ACCEPTED_RESUME_TYPES } from "@/lib/extract-resume-text";
+import { extractTextFromFile, ACCEPTED_RESUME_TYPES } from "@/lib/extract-resume-text"; // Client-safe PDF/DOCX extractor
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,8 +43,15 @@ export default function ATSForm({ savedResumeContent, onComplete }) {
           jobTitle,
           companyName,
         });
+
+        if (!result?.success) {
+          const message =
+            result?.errors?._form?.[0] || "Analysis failed. Please try again.";
+          throw new Error(message);
+        }
+
         toast.success("ATS analysis complete!");
-        onComplete(result);
+        onComplete(result.data);
       } catch (err) {
         console.error(err);
         toast.error(err.message || "Analysis failed. Please try again.");
