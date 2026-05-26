@@ -13,6 +13,7 @@ import {
   TrendingUp,
   Award,
 } from "lucide-react";
+import { normalizeAtsSuggestions } from "@/lib/ats";
 
 /* ── helpers ─────────────────────────────────────────── */
 function getScoreColor(score) {
@@ -70,22 +71,12 @@ function KeywordBadge({ word, type }) {
 /* ── PDF download ─────────────────────────────────────── */
 async function downloadReport(result) {
   const { default: html2pdf } = await import("html2pdf.js");
-  const { atsScore, jobTitle, companyName, matchedKeywords, missingKeywords, suggestions, overallFeedback, createdAt } = result;
-  const safeScore = Number.isFinite(Number(atsScore))
-    ? Math.min(100, Math.max(0, Number(atsScore)))
-    : 0;
+  const { atsScore, jobTitle, companyName, matchedKeywords, missingKeywords, suggestions, overallFeedback, createdAt } = result || {};
+
+  const normalizedSuggestions = normalizeAtsSuggestions(suggestions);
+  const safeScore = Number.isFinite(Number(atsScore)) ? Math.min(100, Math.max(0, Number(atsScore))) : 0;
   const safeMatchedKeywords = Array.isArray(matchedKeywords) ? matchedKeywords : [];
   const safeMissingKeywords = Array.isArray(missingKeywords) ? missingKeywords : [];
-  const safeSuggestions = Array.isArray(suggestions)
-    ? suggestions.map((suggestion) =>
-        typeof suggestion === "string"
-          ? { category: "Suggestion", tip: suggestion }
-          : {
-              category: suggestion?.category || "Suggestion",
-              tip: suggestion?.tip || suggestion?.text || String(suggestion),
-            }
-      )
-    : [];
   const { label } = getScoreColor(safeScore);
 
   const html = `
@@ -108,8 +99,13 @@ async function downloadReport(result) {
       <h2 style="font-size:18px; color:#dc2626; margin-bottom:8px;">Missing Keywords (${safeMissingKeywords.length})</h2>
       <p style="margin-bottom:20px;">${safeMissingKeywords.join(", ")}</p>
 
+<<<<<<< HEAD
+      <h2 style="font-size:18px; margin-bottom:12px;">💡 Improvement Suggestions</h2>
+      ${normalizedSuggestions.map(s => `
+=======
       <h2 style="font-size:18px; margin-bottom:12px;">Improvement Suggestions</h2>
       ${safeSuggestions.map(s => `
+>>>>>>> origin/main
         <div style="border:1px solid #e2e8f0; border-radius:8px; padding:12px 16px; margin-bottom:10px;">
           <strong style="color:#6d28d9;">${s.category}</strong>
           <p style="margin:6px 0 0;">${s.tip}</p>
@@ -135,31 +131,7 @@ async function downloadReport(result) {
 
 /* ── main component ───────────────────────────────────── */
 export default function ATSResult({ result, onAnalyzeAgain }) {
-  const normalizedSuggestions = Array.isArray(result?.suggestions)
-    ? result.suggestions.map((suggestion) =>
-        typeof suggestion === "string"
-          ? { category: "Suggestion", tip: suggestion }
-          : {
-              category: suggestion?.category || "Suggestion",
-              tip: suggestion?.tip || suggestion?.text || String(suggestion),
-            }
-      )
-    : [];
-  const safeScore = Number.isFinite(Number(result?.atsScore))
-    ? Math.min(100, Math.max(0, Number(result.atsScore)))
-    : 0;
-
-  const {
-    jobTitle,
-    companyName,
-    overallFeedback,
   } = result || {};
-  const safeMatchedKeywords = Array.isArray(result?.matchedKeywords)
-    ? result.matchedKeywords
-    : [];
-  const safeMissingKeywords = Array.isArray(result?.missingKeywords)
-    ? result.missingKeywords
-    : [];
 
   return (
     <div className="space-y-6">
