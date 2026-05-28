@@ -15,6 +15,7 @@ import {
   getCachedResponse,
   cacheResponse,
 } from "@/lib/cache/cache-service";
+import { respondError, respondSseError, ERROR_CODES } from "@/lib/api/error-handler";
 const SSE_HEADERS = {
   "Content-Type": "text/event-stream; charset=utf-8",
   "Cache-Control": "no-cache, no-store, must-revalidate, no-transform",
@@ -83,22 +84,13 @@ export async function POST(request) {
   }
 
   if (!userId) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
+    return respondSseError(ERROR_CODES.UNAUTHORIZED);
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    return new Response(
-      JSON.stringify({ error: "GEMINI_API_KEY is not configured" }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    return respondError(ERROR_CODES.INTERNAL_SERVER_ERROR, "GEMINI_API_KEY is not configured");
   }
 
   let prompt;
@@ -109,13 +101,7 @@ export async function POST(request) {
     prompt = body.prompt;
     conversationId = body.conversationId;
   } catch {
-    return new Response(
-      JSON.stringify({ error: "Invalid request body" }),
-      {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    return respondError(ERROR_CODES.VALIDATION_ERROR, "Invalid request body");
   }
 
   if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
@@ -135,10 +121,7 @@ export async function POST(request) {
   });
 
   if (!user) {
-    return new Response(JSON.stringify({ error: "User not found" }), {
-      status: 404,
-      headers: { "Content-Type": "application/json" },
-    });
+    return respondError(ERROR_CODES.USER_NOT_FOUND);
   }
   const cacheUser = userId || request.headers.get("x-forwarded-for") || "anonymous";
 
@@ -208,20 +191,11 @@ export async function POST(request) {
       );
     } catch (error) {
       if (error?.message === "Conversation not found") {
-        return new Response(
-          JSON.stringify({ error: "Conversation not found" }),
-          {
-            status: 404,
-            headers: { "Content-Type": "application/json" },
-          }
-        );
+        return respondError(ERROR_CODES.RESOURCE_NOT_FOUND, "Conversation not found");
       }
 
       console.error("Pre-stream conversation transaction failed:", error);
-      return new Response(JSON.stringify({ error: "Failed to prepare conversation" }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+      return respondError(ERROR_CODES.DATABASE_ERROR, "Failed to prepare conversation");
     }
   }
 
