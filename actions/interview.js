@@ -4,6 +4,7 @@ import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { generateGeminiContent } from "@/lib/gemini";
 import { buildSecurePrompt } from "@/lib/prompt-safety";
+import { parseAIJson } from "@/lib/validate";
 
 // Fallback MCQ questions in case Gemini generation fails
 const FALLBACK_QUESTIONS = [
@@ -185,9 +186,7 @@ Return ONLY a valid JSON object matching this schema. Do not output any markdown
 
   try {
     const result = await generateGeminiContent(prompt);
-    const text = result.response.text();
-    const cleaned = text.replace(/```(?:json)?[\r\n]?/g, "").trim();
-    const quiz = JSON.parse(cleaned);
+    const quiz = parseAIJson(result.response.text());
 
     if (!quiz || !Array.isArray(quiz.questions) || quiz.questions.length === 0) {
       throw new Error("Invalid questions structure received from AI.");
@@ -296,12 +295,12 @@ export async function saveQuizResult(questions, answers, score, category = "Tech
  */
 export async function getAssessments() {
   const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
+  if (!userId) return [];
 
   const user = await db.user.findUnique({
     where: { clerkUserId: userId },
   });
-  if (!user) throw new Error("User not found");
+  if (!user) return [];
 
   return db.assessment.findMany({
     where: { userId: user.id },
@@ -314,12 +313,12 @@ export async function getAssessments() {
  */
 export async function getAssessment(id) {
   const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
+  if (!userId) return null;
 
   const user = await db.user.findUnique({
     where: { clerkUserId: userId },
   });
-  if (!user) throw new Error("User not found");
+  if (!user) return null;
 
   const assessment = await db.assessment.findUnique({
     where: {
@@ -328,6 +327,5 @@ export async function getAssessment(id) {
     },
   });
 
-  if (!assessment) throw new Error("Assessment not found or access denied.");
   return assessment;
 }

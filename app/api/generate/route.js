@@ -11,7 +11,11 @@ import {
   preparePromptForGeneration,
   buildSseErrorResponse,
 } from "@/lib/prompt-guard";
-
+import {
+  getCachedResponse,
+  cacheResponse,
+} from "@/lib/cache/cache-service";
+import { respondError, respondSseError, ERROR_CODES } from "@/lib/api/error-handler";
 const SSE_HEADERS = {
   "Content-Type": "text/event-stream; charset=utf-8",
   "Cache-Control": "no-cache, no-store, must-revalidate, no-transform",
@@ -21,6 +25,7 @@ const SSE_HEADERS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
+
 
 const encodeSseEvent = (encoder, event, payload) => {
   const safePayload = payload ?? {};
@@ -50,6 +55,7 @@ export async function OPTIONS() {
 }
 
 export async function POST(request) {
+  
   const { userId } = await auth();
   const endpoint = "/api/generate";
   const subject = getRateLimitIdentifier(request, userId);
@@ -58,6 +64,15 @@ export async function POST(request) {
     subject,
     limitPerMinute: userId ? 20 : 5,
     burstCapacity: userId ? 10 : 5,
+  });
+
+  console.info("rate-limit-check", {
+    endpoint,
+    subjectKind: subject.kind,
+    allowed: rateLimit.allowed,
+    remaining: rateLimit.remaining,
+    retryAfterSeconds: rateLimit.retryAfterSeconds,
+    ...(rateLimit.allowed ? {} : { rejectionRate: rateLimit.rejectionRate }),
   });
 
   if (!rateLimit.allowed) {
@@ -69,22 +84,13 @@ export async function POST(request) {
   }
 
   if (!userId) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
+    return respondSseError(ERROR_CODES.UNAUTHORIZED);
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    return new Response(
-      JSON.stringify({ error: "GEMINI_API_KEY is not configured" }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    return respondError(ERROR_CODES.INTERNAL_SERVER_ERROR, "GEMINI_API_KEY is not configured");
   }
 
   let prompt;
@@ -95,13 +101,7 @@ export async function POST(request) {
     prompt = body.prompt;
     conversationId = body.conversationId;
   } catch {
-    return new Response(
-      JSON.stringify({ error: "Invalid request body" }),
-      {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    return respondError(ERROR_CODES.VALIDATION_ERROR, "Invalid request body");
   }
 
   if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
@@ -121,47 +121,81 @@ export async function POST(request) {
   });
 
   if (!user) {
-    return new Response(JSON.stringify({ error: "User not found" }), {
-      status: 404,
-      headers: { "Content-Type": "application/json" },
-    });
+    return respondError(ERROR_CODES.USER_NOT_FOUND);
   }
+  const cacheUser = userId || request.headers.get("x-forwarded-for") || "anonymous";
+
+  const existingCachedResponse = await getCachedResponse(
+    cacheUser,
+    promptCheck.prompt
+  );
+
+  if (existingCachedResponse) {
+  const encoder = new TextEncoder();
+
+  const cachedStream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(
+        encodeSseEvent(encoder, "delta", {
+          text: existingCachedResponse,
+          cached: true,
+        })
+      );
+
+      controller.enqueue(
+        encodeSseEvent(encoder, "done", {
+          finalText: existingCachedResponse,
+          hasContent: true,
+          cached: true,
+        })
+      );
+
+      controller.close();
+    },
+  });
+
+  return new Response(cachedStream, {
+    headers: {
+      ...SSE_HEADERS,
+      "X-Cache": "HIT",
+    },
+  });
+}
 
   if (conversationId) {
-    const conversation = await db.conversation.findFirst({
-      where: {
-        id: conversationId,
-        userId: user.id,
-      },
-    });
+    try {
+      await db.$transaction(
+        async (tx) => {
+          const conversation = await tx.conversation.findFirst({
+            where: {
+              id: conversationId,
+              userId: user.id,
+            },
+          });
 
-    if (!conversation) {
-      return new Response(
-        JSON.stringify({ error: "Conversation not found" }),
-        {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-    }
+          if (!conversation) {
+            throw new Error("Conversation not found");
+          }
 
-    if (user?.saveChatHistory ?? true) {
-      await db.message.create({
-        data: {
-          conversationId,
-          role: "user",
-          content: prompt,
+          if (user?.saveChatHistory ?? true) {
+            await tx.message.create({
+              data: {
+                conversationId,
+                role: "user",
+                content: prompt,
+              },
+            });
+          }
         },
-      });
-await db.conversation.updateMany({
-  where: {
-    id: conversationId,
-    userId: user.id,
-  },
-  data: {
-    updatedAt: new Date(),
-  },
-});
+        { timeout: 10_000 }
+      );
+    } catch (error) {
+      if (error?.message === "Conversation not found") {
+        return respondError(ERROR_CODES.RESOURCE_NOT_FOUND, "Conversation not found");
+      }
+
+      console.error("Pre-stream conversation transaction failed:", error);
+      return respondError(ERROR_CODES.DATABASE_ERROR, "Failed to prepare conversation");
     }
   }
 
@@ -225,26 +259,41 @@ Rules:
 
         if (conversationId && fullResponse.trim()) {
           if (user?.saveChatHistory ?? true) {
-            await db.message.create({
-              data: {
-                conversationId,
-                role: "assistant",
-                content: fullResponse,
-              },
-            });
+            try {
+              await db.$transaction(
+                async (tx) => {
+                  await tx.message.create({
+                    data: {
+                      conversationId,
+                      role: "assistant",
+                      content: fullResponse,
+                    },
+                  });
 
-           await db.conversation.updateMany({
-  where: {
-    id: conversationId,
-    userId: user.id,
-  },
-  data: {
-    updatedAt: new Date(),
-  },
-});
+                  await tx.conversation.update({
+                    where: {
+                      id: conversationId,
+                    },
+                    data: {
+                      updatedAt: new Date(),
+                    },
+                  });
+                },
+                { timeout: 10_000 }
+              );
+            } catch (error) {
+              console.error("Post-stream conversation transaction failed:", error);
+              throw error;
+            }
           }
         }
-
+        if (fullResponse.trim()) {
+          await cacheResponse(
+            cacheUser,
+            promptCheck.prompt,
+            fullResponse
+          );
+        }
         safeEnqueue("done", {
           finalText: fullResponse,
           hasContent: Boolean(fullResponse.trim()),
