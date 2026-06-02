@@ -159,16 +159,13 @@ export async function generateQuiz(category = "Technical") {
   const categoryIntro = categoryPrompts[category] || categoryPrompts.Technical;
 
   const prompt = buildSecurePrompt({
-    context: profileContext,
+    context: `${profileContext}\n\nThe candidate has listed their industry, skills, and a quiz category below.`,
     task: `You are a highly experienced hiring manager and strict quiz generator.
 
 ${categoryIntro}
 
 Generate EXACTLY 10 UNIQUE MCQ questions.`,
-    context: "The candidate has listed their industry, skills, and a quiz category below.",
     untrustedData: [
-      { label: "industry", value: user.industry || "software", maxLength: 200 },
-      { label: "skills", value: normalizedSkills.join(", ") || "Not specified", maxLength: 1000 },
       { label: "category", value: category, maxLength: 200 },
     ],
     outputRules: `RULES:
@@ -273,7 +270,6 @@ export async function saveQuizResult(questions, answers, score, category = "Tech
       context: profileContext,
       task: "You are a supportive career mentor. The candidate completed a quiz. Provide an encouraging, actionable improvement tip (strictly max 2 sentences) recommending key learning areas. Be positive, warm, and professional. Do not refer to question indexes or speak critically.",
       untrustedData: [
-        { label: "industry", value: user.industry || "software", maxLength: 200 },
         { label: "category", value: category, maxLength: 200 },
         { label: "score", value: String(score), maxLength: 50 },
         { label: "wrongAnswers", value: wrongText, maxLength: 4000 },

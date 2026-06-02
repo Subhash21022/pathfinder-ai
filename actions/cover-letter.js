@@ -26,7 +26,7 @@ export async function generateCoverLetter(data) {
   }
 
   const prompt = buildSecurePrompt({
-    context: buildUserProfileContext(user),
+    context: `${buildUserProfileContext(user)}\n\nYou are a professional career coach and cover letter writer.`,
     task: `Write a professional cover letter for the position described below.
 
 Use only the candidate facts provided in the input. Do not invent projects, achievements,
@@ -39,15 +39,9 @@ Respond ONLY with a valid JSON object in this exact format (no markdown, no code
   "body": "<2-3 paragraphs, professional tone, max 300 words>",
   "closing": "Sincerely,\\n<candidate name>"
 }`,
-    context: "You are a professional career coach and cover letter writer.",
     untrustedData: [
       { label: "jobTitle", value: data.jobTitle, maxLength: 200 },
       { label: "companyName", value: data.companyName, maxLength: 200 },
-      { label: "candidateName", value: user.name || "Candidate", maxLength: 200 },
-      { label: "industry", value: user.industry || "Technology", maxLength: 200 },
-      { label: "experience", value: String(user.experience || "0") + " years", maxLength: 100 },
-      { label: "skills", value: user.skills?.join(", ") || "Not specified", maxLength: 1000 },
-      { label: "bio", value: user.bio || "Not specified", maxLength: 2000 },
       { label: "jobDescription", value: data.jobDescription, maxLength: 8000 },
     ],
   });
