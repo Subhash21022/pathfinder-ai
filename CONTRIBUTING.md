@@ -108,6 +108,18 @@ By contributing to PathFinder AI, you agree that your contributions will be lice
    npx prisma migrate dev
    ```
 
+**Database migrations**
+
+When you change `prisma/schema.prisma`, always create and apply a migration before pushing your branch to avoid schema drift:
+
+```bash
+npx prisma migrate dev --name describe-your-change
+npx prisma generate
+```
+
+This repository's CI also enforces migration parity: the workflow will fail if `prisma/schema.prisma` is changed without a corresponding migration file under `prisma/migrations`. If you see a CI failure mentioning pending migrations, run the commands above, commit the generated migration, and push again.
+
+
 4. **Start the dev server:**
 
    ```bash
