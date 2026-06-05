@@ -300,13 +300,15 @@
 }
 
 /* Navigation Links */
-.nav-links {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  list-style: none;
-  flex-wrap: wrap;
-}
+ .nav-links {
+   display: flex;
+   align-items: center;
+   gap: 1.5rem;
+   list-style: none;
++  margin: 0;
++  padding: 0;
+   flex-wrap: wrap;
+ }
 
 /* Nav Link Styling */
 .nav-links a {
