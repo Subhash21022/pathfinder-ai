@@ -125,13 +125,6 @@ export async function getUserOnboardingStatus() {
     });
   }
 
-  console.log("===== ONBOARDING DEBUG =====");
-console.log("User ID:", userId);
-console.log("User:", user);
-console.log("Industry:", user?.industry);
-console.log("isOnboarded:", Boolean(user?.industry));
-console.log("===========================");
-
 return {
   isOnboarded: Boolean(user.industry),
   user,
