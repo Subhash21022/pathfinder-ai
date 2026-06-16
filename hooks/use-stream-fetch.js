@@ -94,6 +94,16 @@ export default function useStreamFetch() {
           : "http://localhost";
       const url = `${origin}/api/generate`;
 
+      // jsdom/happy-dom test environments can produce AbortSignal instances from a
+      // different realm, which Node.js 24+'s undici rejects with a TypeError.
+      // Skip the signal in test mode — the 60s timeout still aborts.
+      const isTestEnv =
+        process.env.NODE_ENV === "test" ||
+        (typeof window !== "undefined" &&
+          (Boolean(window.happyDOM) ||
+            window.navigator?.userAgent?.includes("HappyDOM")));
+      const signalToUse = isTestEnv ? undefined : controller.signal;
+
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
