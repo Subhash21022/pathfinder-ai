@@ -85,6 +85,7 @@ const MENU_GROUPS = [
     items: [
       { href: "/resume-builder", label: "Resume Builder", icon: <FileText className="h-4 w-4 text-amber-500" /> },
       { href: "/resume-roast", label: "Resume Roast", icon: <Flame className="h-4 w-4 text-red-500" /> },
+      { href: "/resume-match", label: "Job Match Score", icon: <Target className="h-4 w-4 text-green-500" /> },
       { href: "/bullet-rewriter", label: "Bullet Rewriter", icon: <PenLine className="h-4 w-4 text-amber-500" /> },
       { href: "/ai-cover-letter", label: "Cover Letters", icon: <Mail className="h-4 w-4 text-rose-500" /> },
       { href: "/linkedin-optimizer", label: "LinkedIn Optimizer", icon: <ScanSearch className="h-4 w-4 text-[#0A66C2]" /> },
