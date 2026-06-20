@@ -65,6 +65,8 @@ export default function Quiz() {
   const sessionId = quizData?.sessionId || null;
 
   useEffect(() => {
+    if (quizData?.questions) {
+      setAnswers(new Array(quizData.questions.length).fill(null));
     if (quizData) {
       setAnswers(new Array(questions.length).fill(null));
       const qs = quizData.questions || quizData;
@@ -79,6 +81,7 @@ export default function Quiz() {
   };
 
   const handleNext = () => {
+    if (currentQuestion < quizData.questions.length - 1) {
     if (currentQuestion < questions.length - 1) {
     const qs = quizData?.questions || quizData;
     if (currentQuestion < qs.length - 1) {
@@ -91,6 +94,7 @@ export default function Quiz() {
 
   const finishQuiz = async () => {
     try {
+      await saveQuizResultFn(quizData.sessionId, answers, selectedCategory);
       await saveQuizResultFn(sessionId, answers, selectedCategory);
       const qs = quizData?.questions || quizData;
       await saveQuizResultFn(qs, answers, selectedCategory);
@@ -174,6 +178,7 @@ export default function Quiz() {
     );
   }
 
+  const question = quizData.questions[currentQuestion];
   const question = questions[currentQuestion];
   const isQuizValid = isValidQuizQuestions(quizData);
   if (!isQuizValid) {
@@ -212,6 +217,7 @@ export default function Quiz() {
           </div>
         )}
         <CardTitle className="flex items-center justify-between">
+          <span>Question {currentQuestion + 1} of {quizData.questions.length}</span>
           <span>Question {currentQuestion + 1} of {questions.length}</span>
           <span className="text-xs font-normal text-muted-foreground px-2 py-1 bg-muted rounded-full">
             {selectedCategory}
@@ -258,6 +264,7 @@ export default function Quiz() {
           {savingResult && (
             <BarLoader className="mt-4" width={"100%"} color="gray" />
           )}
+          {currentQuestion < quizData.questions.length - 1
           {currentQuestion < questions.length - 1
             ? "Next Question"
             : "Finish Quiz"}

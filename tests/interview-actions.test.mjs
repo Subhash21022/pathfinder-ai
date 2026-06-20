@@ -2,6 +2,12 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   auth: vi.fn(),
+  findUniqueUser: vi.fn(),
+  createAssessment: vi.fn(),
+  generateGeminiContent: vi.fn(),
+  cacheGet: vi.fn(),
+  cacheSet: vi.fn(),
+  cacheDelete: vi.fn(),
   userFindUnique: vi.fn(),
   assessmentFindFirst: vi.fn(),
 }));
@@ -13,6 +19,33 @@ vi.mock("@clerk/nextjs/server", () => ({
 vi.mock("@/lib/prisma", () => ({
   db: {
     user: {
+      findUnique: mocks.findUniqueUser,
+    },
+    assessment: {
+      create: mocks.createAssessment,
+    },
+  },
+}));
+
+vi.mock("@/lib/gemini", () => ({
+  generateGeminiContent: mocks.generateGeminiContent,
+}));
+
+vi.mock("@/lib/cache", async () => {
+  const actual = await vi.importActual("@/lib/cache");
+  return {
+    ...actual,
+    cacheStore: {
+      get: mocks.cacheGet,
+      set: mocks.cacheSet,
+      delete: mocks.cacheDelete,
+    },
+  };
+});
+
+import { generateQuiz, saveQuizResult } from "../actions/interview.js";
+
+describe("interview actions", () => {
       findUnique: mocks.userFindUnique,
     },
     assessment: {
@@ -28,6 +61,124 @@ describe("getAssessment", () => {
     vi.clearAllMocks();
   });
 
+  describe("generateQuiz", () => {
+    it("successfully generates quiz questions and stores them in cache under a session ID", async () => {
+      mocks.auth.mockResolvedValue({ userId: "clerk-user-1" });
+      mocks.findUniqueUser.mockResolvedValue({
+        id: "user-1",
+        industry: "technology",
+        skills: ["javascript", "react"],
+      });
+
+      const mockAiResponseText = JSON.stringify({
+        questions: [
+          {
+            question: "What is 2+2?",
+            options: ["3", "4", "5", "6"],
+            correctAnswer: "4",
+            explanation: "Basic math",
+          },
+        ],
+      });
+
+      mocks.generateGeminiContent.mockResolvedValue({
+        response: {
+          text: () => mockAiResponseText,
+        },
+      });
+
+      const result = await generateQuiz("Technical");
+
+      expect(result).toHaveProperty("sessionId");
+      expect(result.questions).toHaveLength(1);
+      expect(result.questions[0].question).toBe("What is 2+2?");
+
+      // Verify that questions were cached
+      expect(mocks.cacheSet).toHaveBeenCalledTimes(1);
+      const cacheKey = mocks.cacheSet.mock.calls[0][0];
+      expect(cacheKey).toContain("quiz-session");
+      expect(mocks.cacheSet.mock.calls[0][1]).toEqual(result.questions);
+    });
+
+    it("falls back to default questions and caches them when AI generation fails", async () => {
+      mocks.auth.mockResolvedValue({ userId: "clerk-user-1" });
+      mocks.findUniqueUser.mockResolvedValue({
+        id: "user-1",
+        industry: "technology",
+        skills: ["javascript", "react"],
+      });
+
+      mocks.generateGeminiContent.mockRejectedValue(new Error("AI service down"));
+
+      const result = await generateQuiz("Technical");
+
+      expect(result).toHaveProperty("sessionId");
+      expect(result.questions.length).toBeGreaterThan(0);
+      expect(mocks.cacheSet).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("saveQuizResult", () => {
+    it("recalculates the score server-side based on cached questions and saves it", async () => {
+      mocks.auth.mockResolvedValue({ userId: "clerk-user-1" });
+      mocks.findUniqueUser.mockResolvedValue({
+        id: "user-1",
+        industry: "technology",
+      });
+
+      const cachedQuestions = [
+        {
+          question: "What is 2+2?",
+          options: ["3", "4", "5", "6"],
+          correctAnswer: "4",
+          explanation: "Basic math",
+        },
+        {
+          question: "What is React?",
+          options: ["Library", "Framework", "OS", "Database"],
+          correctAnswer: "Library",
+          explanation: "UI Library",
+        },
+      ];
+
+      mocks.cacheGet.mockResolvedValue(cachedQuestions);
+      mocks.createAssessment.mockImplementation(({ data }) => Promise.resolve({ id: "assessment-1", ...data }));
+
+      // User got 1 correct and 1 wrong
+      const answers = ["4", "Framework"];
+
+      const result = await saveQuizResult("test-session-id", answers, "Technical");
+
+      // Verify session was retrieved and deleted
+      expect(mocks.cacheGet).toHaveBeenCalledTimes(1);
+      expect(mocks.cacheDelete).toHaveBeenCalledTimes(1);
+
+      // Score should be 50%
+      expect(result.quizScore).toBe(50);
+      expect(result.userId).toBe("user-1");
+      expect(result.category).toBe("Technical");
+      expect(result.questions).toHaveLength(2);
+      expect(result.questions[0].isCorrect).toBe(true);
+      expect(result.questions[1].isCorrect).toBe(false);
+
+      expect(mocks.createAssessment).toHaveBeenCalledTimes(1);
+    });
+
+    it("throws an error if the session is not found in cache", async () => {
+      mocks.auth.mockResolvedValue({ userId: "clerk-user-1" });
+      mocks.findUniqueUser.mockResolvedValue({
+        id: "user-1",
+        industry: "technology",
+      });
+
+      mocks.cacheGet.mockResolvedValue(null);
+
+      await expect(
+        saveQuizResult("expired-session-id", ["4"], "Technical")
+      ).rejects.toThrow("Quiz session expired or not found");
+
+      expect(mocks.cacheDelete).not.toHaveBeenCalled();
+      expect(mocks.createAssessment).not.toHaveBeenCalled();
   it("returns null if user is not authenticated", async () => {
     mocks.auth.mockResolvedValue({ userId: null });
     const result = await getAssessment("assessment-1");

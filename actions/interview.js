@@ -4,6 +4,7 @@ import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { generateGeminiContent } from "@/lib/gemini";
 import { cachedGenerateGeminiContent, QUIZ_CACHE_TTL_MS, generateCacheKey, cacheStore } from "@/lib/cache";
+import crypto from "crypto";
 import { buildSecurePrompt } from "@/lib/prompt-safety";
 import { buildUserProfileContext } from "@/lib/ai-context";
 import { parseAIJson } from "@/lib/validate";
@@ -592,6 +593,19 @@ Return ONLY a valid JSON object matching this schema. Do not output any markdown
       };
     }
 
+    const sessionId = crypto.randomUUID();
+    const questions = quiz.questions.slice(0, 10);
+    const cacheKey = generateCacheKey("quiz-session", userId, sessionId);
+    await cacheStore.set(cacheKey, questions, QUIZ_CACHE_TTL_MS);
+
+    return { sessionId, questions };
+  } catch (error) {
+    console.error("AI Quiz generation failed, using default questions:", error);
+    const sessionId = crypto.randomUUID();
+    const cacheKey = generateCacheKey("quiz-session", userId, sessionId);
+    await cacheStore.set(cacheKey, FALLBACK_QUESTIONS, QUIZ_CACHE_TTL_MS);
+
+    return { sessionId, questions: FALLBACK_QUESTIONS };
     questions = quiz.questions.slice(0, 10);
   } catch (error) {
     console.error("AI Quiz generation failed, using default questions:", error);
@@ -626,6 +640,11 @@ export async function saveQuizResult(sessionId, answers, category = "Technical")
   });
   if (!user) throw new Error("User not found");
 
+  if (!sessionId) {
+    throw new Error("Session ID is required.");
+  }
+
+  const cacheKey = generateCacheKey("quiz-session", userId, sessionId);
   if (!sessionId) throw new Error("Session ID is required");
 
   const cacheKey = `quiz-session:${userId}:${sessionId}`;
@@ -633,6 +652,9 @@ export async function saveQuizResult(sessionId, answers, category = "Technical")
   if (!questions) {
     throw new Error("Quiz session expired or not found. Please start a new quiz.");
   }
+
+  // Delete quiz session immediately to prevent replay attacks
+  await cacheStore.delete(cacheKey);
 
   const profileContext = buildUserProfileContext(user);
 
@@ -644,6 +666,8 @@ export async function saveQuizResult(sessionId, answers, category = "Technical")
     sanitizedAnswers.push(null);
   }
 
+  // Map user answers to question outcomes and compute score on the server
+  let correctCount = 0;
   // Map user answers to question outcomes and compute score
   const questionResults = [];
   const wrongAnswers = [];
@@ -680,6 +704,14 @@ export async function saveQuizResult(questions, answers, category = "Technical")
     }
 
   const score = questions.length > 0 ? (correctCount / questions.length) * 100 : 0;
+
+  let improvementTip = null;
+
+  if (wrongAnswers.length > 0) {
+    const wrongText = wrongAnswers
+      .slice(0, 3)
+      .map((q) => `Q: ${q.question}\nCorrect answer was: ${q.correctAnswer}\nUser answered: ${q.userAnswer || "No Answer"}`)
+      .join("\n\n");
 
   let improvementTip = null;
     const {
