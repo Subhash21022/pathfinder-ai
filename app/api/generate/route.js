@@ -475,7 +475,7 @@ Rules:
         if (fullResponse.trim()) {
           await cacheResponse(
             cacheUser,
-            promptCheck.prompt,
+            restrictedPrompt,
             fullResponse
           );
         }

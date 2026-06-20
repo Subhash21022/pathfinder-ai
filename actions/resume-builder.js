@@ -1,5 +1,6 @@
 "use server";
 import { validateAuthenticatedUser } from "@/lib/auth-user";
+import { JOB_DESCRIPTION_MAX_LENGTH } from "@/lib/input-limits";
 import { UNAUTHORIZED_RESPONSE } from "@/lib/auth-errors";
 import { db } from "@/lib/prisma";
 import { getUserByClerkId } from "@/lib/user";
@@ -11,6 +12,7 @@ import { resumeOutputSchema } from "@/lib/schemas/resume";
 import { generateGeminiContent } from "@/lib/gemini";
 import { buildUserProfileContext } from "@/lib/ai-context";
 import { checkRateLimit, formatResetTime } from "@/lib/rate-limit-actions";
+import { EMPTY_HISTORY_RESPONSE } from "@/lib/history-response";
 import { createErrorResponse } from "@/lib/action-errors";
 
 export async function generateResumeContent(jobDescription) {
@@ -30,22 +32,18 @@ export async function generateResumeContent(jobDescription) {
   if (!jobDescription || jobDescription.trim().length < 50) {
     return { success: false, errors: { _form: ["Please provide a valid job description (at least 50 characters)."] } };
   }
-
+  
   const user = await getUserByClerkId(userId);
-<<<<<<< HEAD
   if (!validateAuthenticatedUser(user)) {
-  return { success: false, errors: { _form: ["User not found"] } };
-}
-=======
-  if (!user) return createErrorResponse("User not found");
->>>>>>> upstream/main
+    return createErrorResponse("User not found");
+  }
 
   const prompt = buildSecurePrompt({
     context: buildUserProfileContext(user),
     task: `You are an expert Executive Resume Writer. Create a tailored, ATS-compliant resume based on the user's profile and the target job description. 
     Ensure keywords from the job description are naturally integrated. Focus on impact and metrics.`,
     untrustedData: [
-      { label: "jobDescription", value: jobDescription, maxLength: 5000 },
+      { label: "jobDescription", value: jobDescription, maxLength: JOB_DESCRIPTION_MAX_LENGTH },
     ],
     outputRules: `Provide the resume data in the following JSON format ONLY:
 {
@@ -118,7 +116,7 @@ export async function generateResumeContent(jobDescription) {
 
 export async function getResumeHistory() {
   const { userId } = await auth();
-  if (!userId) return { success: false, data: [] };
+  if (!userId) return EMPTY_HISTORY_RESPONSE;
 
   const user = await getUserByClerkId(userId);
   if (!user) return { success: false, data: [] };
