@@ -6,12 +6,14 @@ import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { buildSecurePrompt, parseAIJson } from "@/lib/prompt-safety";
 import { generateGeminiContent } from "@/lib/gemini";
-
+async function getPerformanceReviewUser(userId) {
+  return getUserByClerkId(userId);
+}
 export async function generateSelfAssessment(achievements, challenges, goals) {
   const { userId } = await auth();
   if (!userId) return { success: false, errors: { _form: ["Unauthorized"] } };
 
-  const user = await getUserByClerkId(userId);
+  const user = await getPerformanceReviewUser(userId);
   if (!user) return { success: false, errors: { _form: ["User not found"] } };
 
   if (!achievements || !goals) {
@@ -69,7 +71,7 @@ export async function getPerformanceReviews() {
   const { userId } = await auth();
   if (!userId) return { success: false, data: [] };
 
-  const user = await getUserByClerkId(userId);
+  const user = await getPerformanceReviewUser(userId);
   if (!user) return { success: false, data: [] };
 
   const records = await db.performanceReview.findMany({
