@@ -8,6 +8,25 @@ import {
   isIndustryInsightStale,
 } from "@/lib/industry-insights";
 
+export async function getDashboardStats() {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const user = await db.user.findUnique({
+    where: { clerkUserId: userId },
+    include: {
+      resumes: true,
+      coverLetters: true,
+      interviews: true,
+    },
+  });
+
+  return {
+    totalResumes: user?.resumes?.length || 0,
+    totalCoverLetters: user?.coverLetters?.length || 0,
+    totalInterviews: user?.interviews?.length || 0,
+  };
+}
 
 /**
  * Generates industry insights using Gemini AI.
@@ -76,4 +95,21 @@ export async function getIndustryInsights() {
     console.error("Failed to fetch or save industry insights:", error);
     return null;
   }
+}
+
+export async function getUserOnboardingStatus() {
+  const { userId } = await auth();
+  if (!userId) {
+    return { isOnboarded: false, user: null, isSignedIn: false };
+  }
+
+  const user = await db.user.findUnique({
+    where: { clerkUserId: userId },
+  });
+
+  return {
+    isOnboarded: Boolean(user?.industry),
+    user,
+    isSignedIn: true,
+  };
 }

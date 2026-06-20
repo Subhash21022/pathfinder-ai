@@ -94,11 +94,15 @@ export default function useStreamFetch() {
           : "http://localhost";
       const url = `${origin}/api/generate`;
 
-      // jsdom test environments can produce AbortSignal instances from a
+      // jsdom/happy-dom test environments can produce AbortSignal instances from a
       // different realm, which Node.js 24+'s undici rejects with a TypeError.
       // Skip the signal in test mode — the 60s timeout still aborts.
-      const signalToUse =
-        process.env.NODE_ENV === "test" ? undefined : controller.signal;
+      const isTestEnv =
+        process.env.NODE_ENV === "test" ||
+        (typeof window !== "undefined" &&
+          (Boolean(window.happyDOM) ||
+            window.navigator?.userAgent?.includes("HappyDOM")));
+      const signalToUse = isTestEnv ? undefined : controller.signal;
 
       const response = await fetch(url, {
         method: "POST",
@@ -107,7 +111,7 @@ export default function useStreamFetch() {
           prompt,
           conversationId,
         }),
-        ...(signalToUse ? { signal: signalToUse } : {}),
+        signal: signalToUse,
       });
 
       if (!response.ok) {
@@ -133,6 +137,9 @@ export default function useStreamFetch() {
 
         const errorMessage =
           (typeof parsed.error === "string" && parsed.error) ||
+          (parsed.error &&
+            typeof parsed.error.message === "string" &&
+            parsed.error.message) ||
           (typeof parsed.message === "string" && parsed.message) ||
           `Request failed (${response.status})`;
 
@@ -205,6 +212,10 @@ export default function useStreamFetch() {
 
         if (event === "error") {
           const message =
+            (typeof parsed.error === "string" && parsed.error) ||
+            (parsed.error &&
+              typeof parsed.error.message === "string" &&
+              parsed.error.message) ||
             (typeof parsed.message === "string" && parsed.message) ||
             "Stream failed";
 

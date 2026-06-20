@@ -75,6 +75,7 @@
 - [What is PathFinder AI?](#-what-is-pathfinder-ai)
 - [Core Features](#-core-features)
 - [Screenshots](#-screenshots)
+- [Pricing Plans](#-pricing-plans)
 - [Tech Stack](#-tech-stack)
 - [Project Structure](#-project-structure)
 - [Getting Started](#-getting-started)
@@ -120,6 +121,13 @@ Generate ATS-friendly, role-tailored resumes in minutes. The AI analyzes your ba
 </details>
 
 <details>
+<summary><b>📑 ATS Resume Analyzer</b></summary>
+
+Analyze your resume against a target job description and receive ATS-focused insights. PathFinder AI calculates a compatibility score, identifies missing keywords, highlights skill gaps, and provides actionable recommendations to improve your chances of passing Applicant Tracking Systems (ATS).
+
+</details>
+
+<details>
 <summary><b>✉️ Cover Letter Generator</b></summary>
 
 Stop staring at a blank page. PathFinder AI writes tone-matched, personalized cover letters for each application — sounding like *you*, not a generic template. Every letter is crafted around the specific role and company.
@@ -161,6 +169,13 @@ Smooth Framer Motion animations, fully responsive layouts, dark mode, and a poli
 
 </details>
 
+<details>
+<summary><b>🔥 AI Resume Roast</b></summary>
+
+Upload or paste your resume and get brutally honest AI-powered feedback. PathFinder AI analyzes weak bullet points, vague achievements, poor formatting choices, and ATS issues, then delivers a humorous but constructive roast alongside actionable recommendations to strengthen your resume and improve hiring outcomes.
+
+</details>
+
 ---
 
 ## 📸 Screenshots
@@ -175,6 +190,60 @@ Smooth Framer Motion animations, fully responsive layouts, dark mode, and a poli
 | 📊 Analytics | ![Analytics](public/screenshots/analytics.png) |
 
 > 💡 Screenshots live in `/public/screenshots/`. Replace placeholders with actual captures after deployment.
+
+---
+
+## 💰 Pricing Plans
+
+PathFinder AI offers flexible plans designed for individuals, professionals, and organizations at different stages of their career journey.
+
+### 🆓 Free — $0 Forever
+
+Perfect for exploring AI-powered career tools.
+
+**Includes:**
+
+* 1 AI Resume Roast
+* AI Resume Builder (Basic)
+* 1 Cover Letter per month
+* 5 Mock Interview Questions
+* Basic ATS Score
+* Community Support
+* Email Support
+* Basic Career Roadmap
+* Limited AI Interview Practice
+
+### 🚀 Pro — $29/month
+
+Everything needed to accelerate your career growth.
+
+**Includes:**
+
+* Unlimited Resumes & Cover Letters
+* Unlimited Mock Interviews
+* Advanced ATS Analysis
+* Industry Insights & Salary Data
+* Interview Performance Analytics
+* Priority Support
+* Unlimited Resume Roasts
+* Advanced Career Roadmaps
+* Priority Email Support
+
+### 🏢 Enterprise — $49/month
+
+Designed for teams and organizations.
+
+**Includes:**
+
+* Everything in Pro
+* Team Dashboard
+* Custom Templates
+* API Access
+* Dedicated Account Manager
+* Custom Integrations
+* Custom Career Frameworks
+* Team Analytics Dashboard
+* Dedicated Success Manager
 
 ---
 
@@ -316,6 +385,19 @@ Open [http://localhost:3000](http://localhost:3000). You're in.
 
 ---
 
+<!-- Fix: Corrected step numbering from 5.5 to 6 for proper sequential numbering -->
+### 6. Start the Inngest Dev Server (required for background jobs)
+
+In a **second terminal**, run:
+
+```bash
+npx inngest-cli@latest dev
+```
+
+> ⚠️ Without this, `generateIndustryInsights` and all background functions
+> will silently never fire — no error, no warning. This is a required step.
+> Get your production keys from [app.inngest.com](https://app.inngest.com).
+
 ## 🔑 Environment Variables
 
 Create `.env.local` in the root and populate with:
@@ -342,11 +424,26 @@ NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/onboarding
 # ─────────────────────────────────────────────
 GEMINI_API_KEY=AIza...
 
+# Inngest (Background Job Processing)
+# Without these, background jobs like generateIndustryInsights silently never fire.
+# For local dev set both to: local
+# For production get them from: https://app.inngest.com → your app → Manage
+INNGEST_EVENT_KEY=your_inngest_event_key
+INNGEST_SIGNING_KEY=your_inngest_signing_key
+
+# ─────────────────────────────────────────────
+# RATE LIMITING (PRODUCTION)
+# ─────────────────────────────────────────────
+REDIS_URL=redis://localhost:6379
+RATE_LIMIT_STORE=auto
+
 # ─────────────────────────────────────────────
 # APP (OPTIONAL)
 # ─────────────────────────────────────────────
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
+
+> **Rate limiting in production:** Redis is required for consistent multi-instance throttling. In production, set `REDIS_URL` and keep `RATE_LIMIT_STORE=auto` (or set `RATE_LIMIT_STORE=redis`).
 
 | Variable | Required | Description |
 |---|---|---|
@@ -358,6 +455,8 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 | `NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL` | ✅ | Redirect destination after sign-in |
 | `NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL` | ✅ | Redirect destination after sign-up |
 | `GEMINI_API_KEY` | ✅ | Google Gemini API key for all AI features |
+| `REDIS_URL` | ⚪ | Redis connection string for production rate limiting |
+| `RATE_LIMIT_STORE` | ⚪ | Rate limiter driver (`auto` or `redis`) |
 | `NEXT_PUBLIC_APP_URL` | ⚪ | Base URL used in production builds |
 
 ---
