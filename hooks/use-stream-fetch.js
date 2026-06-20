@@ -137,6 +137,9 @@ export default function useStreamFetch() {
 
         const errorMessage =
           (typeof parsed.error === "string" && parsed.error) ||
+          (parsed.error &&
+            typeof parsed.error.message === "string" &&
+            parsed.error.message) ||
           (typeof parsed.message === "string" && parsed.message) ||
           `Request failed (${response.status})`;
 
