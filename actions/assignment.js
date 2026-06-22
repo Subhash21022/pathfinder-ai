@@ -5,6 +5,7 @@ import { buildUserLookup } from "@/lib/user-query";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { buildSecurePrompt, parseAIJson } from "@/lib/prompt-safety";
+import { getUserByScope } from "@/lib/user-scope";
 import { generateGeminiContent } from "@/lib/gemini";
 import { USER_NOT_FOUND_RESPONSE } from "@/lib/user-not-found";
 
@@ -12,7 +13,7 @@ export async function gradeAssignment(promptText, solutionText) {
   const { userId } = await auth();
   if (!userId) return { success: false, errors: { _form: ["Unauthorized"] } };
 
-  const user = await db.user.findUnique(buildUserLookup(userId));
+  const user = await getUserByScope(userId);
   if (!user) return USER_NOT_FOUND_RESPONSE;
 
   if (!promptText || !solutionText) {
