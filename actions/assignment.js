@@ -3,6 +3,7 @@
 import { db } from "@/lib/prisma";
 import { buildUserLookup } from "@/lib/user-query";
 import { auth } from "@clerk/nextjs/server";
+import { logActionError } from "@/lib/action-logger";
 import { revalidatePath } from "next/cache";
 import { buildSecurePrompt, parseAIJson } from "@/lib/prompt-safety";
 import { generateGeminiContent } from "@/lib/gemini";
