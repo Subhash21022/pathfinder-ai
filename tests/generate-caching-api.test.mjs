@@ -43,6 +43,9 @@ vi.mock("@/lib/rate-limit", () => ({
 vi.mock("@/lib/cache/cache-service", () => ({
   getCachedResponse: mocks.getCachedResponse,
   cacheResponse: mocks.cacheResponse,
+  getPendingGenerationRequest: vi.fn().mockResolvedValue(null),
+  setPendingGenerationRequest: vi.fn().mockResolvedValue(undefined),
+  deletePendingGenerationRequest: vi.fn().mockResolvedValue(undefined),
 }));
 
 // We need to set up minimal env vars needed by the route
