@@ -4,6 +4,7 @@ import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { buildUserLookup } from "@/lib/user-query";
+import { EMPTY_HISTORY_RESPONSE } from "@/lib/history-response";
 import { buildSecurePrompt, parseAIJson } from "@/lib/prompt-safety";
 import { generateGeminiContent } from "@/lib/gemini";
 import { USER_NOT_FOUND_RESPONSE } from "@/lib/user-not-found";
@@ -63,7 +64,7 @@ export async function assessBurnout(symptoms, workload) {
 
 export async function getBurnoutAssessments() {
   const { userId } = await auth();
-  if (!userId) return { success: false, data: [] };
+  if (!userId) return EMPTY_HISTORY_RESPONSE;
 
   const user = await db.user.findUnique(buildUserLookup(userId));
   if (!user) return { success: false, data: [] };
