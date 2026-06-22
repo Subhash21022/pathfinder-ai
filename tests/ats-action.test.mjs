@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
   create: vi.fn(),
   cachedGenerateGeminiContent: vi.fn(),
   generateCacheKey: vi.fn(),
+  checkRateLimit: vi.fn(),
+  formatResetTime: vi.fn(),
 }));
 
 vi.mock("@clerk/nextjs/server", () => ({
@@ -20,10 +22,6 @@ vi.mock("@/lib/prisma", () => ({
     atsAnalysis: {
       create: mocks.create,
     },
-    aiRateLimit: {
-      findUnique: vi.fn().mockResolvedValue(null),
-      upsert: vi.fn().mockResolvedValue({}),
-    },
   },
 }));
 
@@ -35,6 +33,11 @@ vi.mock("@/lib/cache", async () => {
     generateCacheKey: mocks.generateCacheKey,
   };
 });
+
+vi.mock("@/lib/rate-limit-actions", () => ({
+  checkRateLimit: mocks.checkRateLimit,
+  formatResetTime: mocks.formatResetTime,
+}));
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
@@ -56,6 +59,7 @@ describe("analyzeATS", () => {
     };
 
     mocks.auth.mockResolvedValue({ userId: "user-1" });
+    mocks.checkRateLimit.mockResolvedValue({ allowed: true });
     mocks.findUnique.mockResolvedValue({ id: "db-user-1", clerkUserId: "user-1" });
     mocks.generateCacheKey.mockReturnValue("ats:test-key");
     mocks.cachedGenerateGeminiContent.mockResolvedValue({
