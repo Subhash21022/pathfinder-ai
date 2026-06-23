@@ -6,6 +6,7 @@ import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { buildSecurePrompt, parseAIJson } from "@/lib/prompt-safety";
 import { generateGeminiContent } from "@/lib/gemini";
+import { getHistoryRecords } from "@/lib/history-query";
 import { USER_NOT_FOUND_RESPONSE } from "@/lib/user-not-found";
 
 export async function gradeAssignment(promptText, solutionText) {
@@ -66,10 +67,10 @@ export async function getAssignmentGrades() {
   const user = await db.user.findUnique(buildUserLookup(userId));
   if (!user) return { success: false, data: [] };
 
-  const records = await db.assignmentGrade.findMany({
-    where: { userId: user.id },
-    orderBy: { createdAt: "desc" },
-  });
+  const records = await getHistoryRecords(
+  db.assignment,
+  user.id
+);
 
   return { success: true, data: records };
 }

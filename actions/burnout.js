@@ -3,6 +3,7 @@
 import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+import { getHistoryRecords } from "@/lib/history-query";
 import { buildUserLookup } from "@/lib/user-query";
 import { buildSecurePrompt, parseAIJson } from "@/lib/prompt-safety";
 import { generateGeminiContent } from "@/lib/gemini";
@@ -68,10 +69,10 @@ export async function getBurnoutAssessments() {
   const user = await db.user.findUnique(buildUserLookup(userId));
   if (!user) return { success: false, data: [] };
 
-  const records = await db.burnoutAssessment.findMany({
-    where: { userId: user.id },
-    orderBy: { createdAt: "desc" },
-  });
+  const records = await getHistoryRecords(
+  db.burnout,
+  user.id
+);
 
   return { success: true, data: records };
 }
