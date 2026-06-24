@@ -106,6 +106,10 @@ describe("generateExecutivePresence", () => {
     actionMocks.generateGeminiContent.mockResolvedValue({
       response: {
         text: () => JSON.stringify({
+          personaSummary: "The user shows confident demeanor in executive meetings.",
+          communicationUpgrades: [{ from: "weak wording", to: "strong phrasing", why: "better clarity" }],
+          meetingStrategy: ["Strategy number one"],
+          gravitasBuilders: ["Builder number one"]
           personaSummary: "A highly confident and structured executive presence brand that projects authority and domain expertise.",
           communicationUpgrades: [
             { 

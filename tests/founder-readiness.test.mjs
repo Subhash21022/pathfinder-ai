@@ -112,6 +112,13 @@ describe("generateFounderReadiness", () => {
       response: {
         text: () => JSON.stringify({
           founderScore: 90,
+          strengths: ["Determined Grit", "Strong Resilience"],
+          blindSpots: [{ issue: "Sales Strategy", mitigation: "Hire experienced operators" }],
+          businessIdeaFeedback: "The business idea is viable and has high potential.",
+          ninetyDayRoadmap: [
+            { phase: "Month 1", actionItems: ["Action item 1 for phase"] },
+            { phase: "Month 2", actionItems: ["Action item 2 for phase"] },
+            { phase: "Month 3", actionItems: ["Action item 3 for phase"] }
           strengths: ["Excellent persistence and grit in challenging environments."],
           blindSpots: [
             { 
