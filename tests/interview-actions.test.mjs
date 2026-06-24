@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   cacheDelete: vi.fn(),
   userFindUnique: vi.fn(),
   assessmentFindFirst: vi.fn(),
+  checkRateLimit: vi.fn(),
 }));
 
 vi.mock("@clerk/nextjs/server", () => ({
@@ -19,10 +20,15 @@ vi.mock("@clerk/nextjs/server", () => ({
 vi.mock("@/lib/prisma", () => ({
   db: {
     user: {
-      findUnique: mocks.findUniqueUser,
+      findUnique: vi.fn((...args) => {
+        const res1 = mocks.userFindUnique(...args);
+        const res2 = mocks.findUniqueUser(...args);
+        return res1 !== undefined ? res1 : res2;
+      }),
     },
     assessment: {
       create: mocks.createAssessment,
+      findFirst: mocks.assessmentFindFirst,
     },
   },
 }));
@@ -43,22 +49,17 @@ vi.mock("@/lib/cache", async () => {
   };
 });
 
-import { generateQuiz, saveQuizResult } from "../actions/interview.js";
-
-describe("interview actions", () => {
-      findUnique: mocks.userFindUnique,
-    },
-    assessment: {
-      findFirst: mocks.assessmentFindFirst,
-    },
-  },
+vi.mock("@/lib/rate-limit-actions", () => ({
+  checkRateLimit: mocks.checkRateLimit,
+  formatResetTime: vi.fn(),
 }));
 
-import { getAssessment } from "../actions/interview.js";
+import { generateQuiz, saveQuizResult, getAssessment } from "../actions/interview.js";
 
 describe("getAssessment", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.checkRateLimit.mockResolvedValue({ allowed: true });
   });
 
   describe("generateQuiz", () => {
@@ -179,6 +180,9 @@ describe("getAssessment", () => {
 
       expect(mocks.cacheDelete).not.toHaveBeenCalled();
       expect(mocks.createAssessment).not.toHaveBeenCalled();
+    });
+  });
+
   it("returns null if user is not authenticated", async () => {
     mocks.auth.mockResolvedValue({ userId: null });
     const result = await getAssessment("assessment-1");

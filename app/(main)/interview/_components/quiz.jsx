@@ -65,12 +65,8 @@ export default function Quiz() {
   const sessionId = quizData?.sessionId || null;
 
   useEffect(() => {
-    if (quizData?.questions) {
-      setAnswers(new Array(quizData.questions.length).fill(null));
-    if (quizData) {
+    if (questions && questions.length > 0) {
       setAnswers(new Array(questions.length).fill(null));
-      const qs = quizData.questions || quizData;
-      setAnswers(new Array(qs.length).fill(null));
     }
   }, [quizData, questions]);
 
@@ -94,10 +90,7 @@ export default function Quiz() {
 
   const finishQuiz = async () => {
     try {
-      await saveQuizResultFn(quizData.sessionId, answers, selectedCategory);
-      await saveQuizResultFn(sessionId, answers, selectedCategory);
-      const qs = quizData?.questions || quizData;
-      await saveQuizResultFn(qs, answers, selectedCategory);
+      await saveQuizResultFn(quizData.sessionId || quizData, answers, selectedCategory);
       toast.success("Quiz completed!");
     } catch (error) {
       toast.error(error.message || "Failed to save quiz results");
