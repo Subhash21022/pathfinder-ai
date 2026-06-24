@@ -13,7 +13,7 @@ datasource db {
 //
 // Composite indexes support common filter + sort query patterns. For example:
 //   - Message: [conversationId, createdAt] - fetch messages for a chat ordered by time
-//   - Conversation: [userId, updatedAt] - list a user'"'"'s conversations by recency
+//   - Conversation: [userId, updatedAt] - list a user's conversations by recency
 //
 // In PostgreSQL, @unique and @@unique constraints automatically create B-tree indexes.
 // Do NOT add a separate @@index on the same column(s) - it duplicates storage and
@@ -39,7 +39,7 @@ model User {
   careerGoals     String?
   bio             String?
   experience      Int?
-
+  
   // Settings
   saveChatHistory Boolean          @default(true)
 

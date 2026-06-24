@@ -9,7 +9,7 @@ import { buildSecurePrompt } from "@/lib/prompt-safety";
 import { buildUserProfileContext } from "@/lib/ai-context";
 import { parseAIJson } from "@/lib/validate";
 import { validateInput, validateOutput } from "@/lib/validate";
-import { quizCategorySchema, quizResultSaveSessionSchema } from "@/lib/schemas/forms";
+import { quizCategorySchema, quizResultSaveSchema, quizResultSaveSessionSchema } from "@/lib/schemas/forms";
 import { interviewQuestionsOutputSchema, voiceFeedbackOutputSchema, videoFeedbackOutputSchema } from "@/lib/schemas";
 import { checkRateLimit, formatResetTime } from "@/lib/rate-limit-actions";
 
@@ -524,7 +524,7 @@ export async function generateQuiz(category = "Technical") {
       "Industry Knowledge": "Generate 10 industry knowledge interview questions focusing on domain trends, terminology, business context, and role-specific professional awareness.",
     };
 
-    const categoryIntro = categoryPrompts[validatedCategory];
+    const categoryIntro = categoryPrompts[validatedCategory] || categoryPrompts.Technical;
 
     const prompt = buildSecurePrompt({
       context: `${profileContext}\n\nThe candidate has listed their industry, skills, and a quiz category below.`,
@@ -666,6 +666,12 @@ export async function saveQuizResult(sessionId, answers, category = "Technical")
     const validation = validateInput(quizResultSaveSessionSchema, { sessionId, answers, category });
     if (!validation.success) return { success: false, errors: validation.errors };
 
+    const {
+      sessionId: validatedSessionId,
+      answers: validatedAnswers,
+      category: validatedCategory,
+    } = validation.data;
+
     const feedbackLimit = await checkRateLimit(userId, "quizFeedback");
     if (!feedbackLimit.allowed) {
       throw new Error(`Quiz feedback limit reached. Resets in ${formatResetTime(feedbackLimit.resetAt)}.`);
@@ -679,6 +685,12 @@ export async function saveQuizResult(sessionId, answers, category = "Technical")
       sanitizedAnswers.push(null);
     }
 
+    const cacheKey = generateCacheKey("quiz-session", userId, validatedSessionId);
+    const questions = await cacheStore.get(cacheKey);
+
+    if (!questions || !Array.isArray(questions) || questions.length === 0) {
+      throw new Error("Quiz session expired or not found. Please start a new quiz.");
+    }
     const {
       sessionId: validatedSessionId,
       answers: validatedAnswers,
@@ -702,6 +714,10 @@ export async function saveQuizResult(sessionId, answers, category = "Technical")
     });
     if (!user) throw new Error("User not found");
 
+    const profileContext = buildUserProfileContext(user);
+
+    const sanitizedAnswers = Array.isArray(validatedAnswers)
+      ? validatedAnswers.slice(0, questions.length)
     let questions;
     let cacheKey = null;
 
@@ -726,15 +742,18 @@ export async function saveQuizResult(sessionId, answers, category = "Technical")
       sanitizedAnswers.push(null);
     }
 
+    let correctCount = 0;
     const questionResults = [];
     const wrongAnswers = [];
-    let correctCount = 0;
 
     questions.forEach((q, index) => {
       if (!q?.question) return;
 
       const userAnswer = sanitizedAnswers[index];
       const isCorrect = q.correctAnswer === userAnswer;
+      if (isCorrect) {
+        correctCount++;
+      }
 
       const mappedQuestion = {
         question: q.question.trim(),
@@ -747,9 +766,7 @@ export async function saveQuizResult(sessionId, answers, category = "Technical")
 
       questionResults.push(mappedQuestion);
 
-      if (isCorrect) {
-        correctCount++;
-      } else {
+      if (!isCorrect) {
         wrongAnswers.push(mappedQuestion);
       }
     });
@@ -761,7 +778,6 @@ export async function saveQuizResult(sessionId, answers, category = "Technical")
     let improvementTip = null;
 
     if (wrongAnswers.length > 0) {
-      const profileContext = buildUserProfileContext(user);
       const wrongText = wrongAnswers
         .slice(0, 3)
         .map((q) => `Q: ${q.question}\nCorrect answer was: ${q.correctAnswer}\nUser answered: ${q.userAnswer || "No Answer"}`)
