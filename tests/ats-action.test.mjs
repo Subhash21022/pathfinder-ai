@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   create: vi.fn(),
   cachedGenerateGeminiContent: vi.fn(),
   generateCacheKey: vi.fn(),
+  checkRateLimit: vi.fn(),
 }));
 
 vi.mock("@clerk/nextjs/server", () => ({
@@ -40,11 +41,18 @@ vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
+vi.mock("@/lib/rate-limit-actions", () => ({
+  checkRateLimit: mocks.checkRateLimit,
+  formatResetTime: vi.fn(),
+}));
+
 import { analyzeATS } from "../actions/ats.js";
 
 describe("analyzeATS", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.GEMINI_API_KEY = "dummy-api-key";
+    mocks.checkRateLimit.mockResolvedValue({ allowed: true });
   });
 
   it("uses cachedGenerateGeminiContent with a specific cache key", async () => {
