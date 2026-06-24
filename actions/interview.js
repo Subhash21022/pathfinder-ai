@@ -940,13 +940,11 @@ export async function evaluateVoiceAnswer(question, transcribedAnswer) {
  */
 export async function evaluateVideoAnswer(question, transcribedAnswer, metrics) {
   const { userId } = await auth();
-  if (!userId && process.env.SKIP_AUTH !== "true") throw new Error("Unauthorized");
+  if (!userId) throw new Error("Unauthorized");
 
-  if (userId) {
-    const videoLimit = await checkRateLimit(userId, "videoEvaluation");
-    if (!videoLimit.allowed) {
-      return { success: false, error: `Video evaluation limit reached. Resets in ${videoLimit.resetInMinutes}m.` };
-    }
+  const videoLimit = await checkRateLimit(userId, "videoEvaluation");
+  if (!videoLimit.allowed) {
+    return { success: false, error: Video evaluation limit reached. Resets in . };
   }
 
   const prompt = buildSecurePrompt({

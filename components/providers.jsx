@@ -1,9 +1,8 @@
 "use client";
 
 import { ThemeProvider as NextThemesProvider } from "next-themes";
-import { AccessibilityProvider } from "@/components/accessibility-provider";
 
-export function Providers({ children, initialAccessibilitySettings }) {
+export function Providers({ children }) {
   return (
     <NextThemesProvider
       attribute="class"
@@ -11,9 +10,7 @@ export function Providers({ children, initialAccessibilitySettings }) {
       enableSystem
       disableTransitionOnChange
     >
-      <AccessibilityProvider initialSettings={initialAccessibilitySettings}>
-        {children}
-      </AccessibilityProvider>
+      {children}
     </NextThemesProvider>
   );
 }
