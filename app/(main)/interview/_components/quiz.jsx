@@ -66,7 +66,6 @@ export default function Quiz() {
 
   useEffect(() => {
     if (questions && questions.length > 0) {
-    if (questions.length > 0) {
       setAnswers(new Array(questions.length).fill(null));
     }
   }, [quizData, questions]);

@@ -9,6 +9,7 @@ import { buildSecurePrompt } from "@/lib/prompt-safety";
 import { buildUserProfileContext } from "@/lib/ai-context";
 import { parseAIJson } from "@/lib/validate";
 import { validateInput, validateOutput } from "@/lib/validate";
+import { quizCategorySchema, quizResultSaveSchema } from "@/lib/schemas/forms";
 import { quizCategorySchema, quizResultSaveSchema, quizResultSaveSessionSchema } from "@/lib/schemas/forms";
 import { interviewQuestionsOutputSchema, voiceFeedbackOutputSchema, videoFeedbackOutputSchema } from "@/lib/schemas";
 import { checkRateLimit, formatResetTime } from "@/lib/rate-limit-actions";
@@ -586,37 +587,11 @@ Return ONLY a valid JSON object matching this schema. Do not output any markdown
     }
 
     const sessionId = crypto.randomUUID();
+    const cacheStore = getCacheStore();
     const cacheKey = generateCacheKey("quiz-session", userId, sessionId);
     await cacheStore.set(cacheKey, questions, QUIZ_CACHE_TTL_MS);
 
     return { sessionId, questions, isFallback };
-      const sessionId = crypto.randomUUID();
-      const cacheStore = getCacheStore();
-      const cacheKey = generateCacheKey("quiz:session", userId, sessionId);
-      const slicedQuestions = quizValidation.data.questions.slice(0, 10);
-      await cacheStore.set(cacheKey, slicedQuestions, QUIZ_CACHE_TTL_MS);
-
-      return {
-        sessionId,
-        questions: slicedQuestions,
-        isFallback: false
-      };
-    } catch (error) {
-      console.error("AI Quiz generation failed, using fallback questions:", error);
-      const industryId = user.industry?.split("-")[0]?.toLowerCase() || "tech";
-      const fallbackQuestions = FallbackQuizPool[industryId] || TECH_FALLBACK_QUESTIONS;
-
-      const sessionId = crypto.randomUUID();
-      const cacheStore = getCacheStore();
-      const cacheKey = generateCacheKey("quiz:session", userId, sessionId);
-      await cacheStore.set(cacheKey, fallbackQuestions, QUIZ_CACHE_TTL_MS);
-
-      return {
-        sessionId,
-        questions: fallbackQuestions,
-        isFallback: true
-      };
-    }
   } catch (error) {
     console.error("Quiz generation top-level error:", error);
     if (process.env.NODE_ENV === "test") {
@@ -633,7 +608,6 @@ Return ONLY a valid JSON object matching this schema. Do not output any markdown
  * Saves a quiz result and generates AI-powered feedback if mistakes were made.
  */
 export async function saveQuizResult(sessionIdOrQuestions, answers, category = "Technical") {
-export async function saveQuizResult(sessionId, answers, category = "Technical") {
   try {
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
@@ -716,10 +690,9 @@ export async function saveQuizResult(sessionId, answers, category = "Technical")
 
     const profileContext = buildUserProfileContext(user);
 
-    const sanitizedAnswers = Array.isArray(validatedAnswers)
-      ? validatedAnswers.slice(0, questions.length)
     let questions;
     let cacheKey = null;
+    const cacheStore = getCacheStore();
 
     if (typeof sessionIdOrQuestions === "string") {
       const sessionId = sessionIdOrQuestions;
