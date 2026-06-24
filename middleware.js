@@ -26,9 +26,9 @@ export default function middleware(req, event) {
     return NextResponse.next();
   }
 
-  // Bypass Clerk completely for video-coach on localhost
+  // Bypass Clerk completely for video-coach on localhost in development
   const isLocalhost = req.nextUrl.hostname === "localhost" || req.nextUrl.hostname === "127.0.0.1";
-  if (isLocalhost && req.nextUrl.pathname.startsWith("/interview/video-coach")) {
+  if (process.env.NODE_ENV === "development" && isLocalhost && /^\/interview\/video-coach(?:$|\/)/.test(req.nextUrl.pathname)) {
     return NextResponse.next();
   }
 

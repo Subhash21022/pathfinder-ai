@@ -7,10 +7,24 @@ export function useTextToSpeech() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [supported, setSupported] = useState(true);
 
+  const [voices, setVoices] = useState([]);
+
   useEffect(() => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) {
       setSupported(false);
+      return;
     }
+
+    const loadVoices = () => {
+      setVoices(window.speechSynthesis.getVoices());
+    };
+
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
   }, []);
 
   const speak = useCallback((text) => {
@@ -21,7 +35,6 @@ export function useTextToSpeech() {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = speechSpeed || 1.0;
 
-    const voices = window.speechSynthesis.getVoices();
     // Try to find a voice that matches the preferred language (e.g. "en" or "hi")
     let voice = voices.find((v) => v.lang.startsWith(preferredVoiceLanguage));
     

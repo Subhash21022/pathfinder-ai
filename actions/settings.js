@@ -47,10 +47,8 @@ export async function getUserSettings() {
   try {
     const user = await getUserByClerkId(userId);
 
-    const settings = await db.userSettings.upsert({
+    const settings = await db.userSettings.findUnique({
       where: { userId: user.id },
-      update: {},
-      create: { userId: user.id },
     });
 
     return normalizeSettings(settings);

@@ -396,10 +396,11 @@ export default function SettingsClient({ userId, user, settings }) {
                 <h3 className="text-sm font-semibold border-b pb-2">Audio</h3>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <Label>Speech Speed</Label>
+                    <Label htmlFor="speechSpeed">Speech Speed</Label>
                     <span className="text-sm font-mono">{form.speechSpeed.toFixed(1)}x</span>
                   </div>
                   <Slider
+                    id="speechSpeed"
                     disabled={isPending}
                     min={0.5}
                     max={2.0}
@@ -410,13 +411,13 @@ export default function SettingsClient({ userId, user, settings }) {
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>Preferred Language</Label>
+                    <Label htmlFor="preferredLanguage">Preferred Language</Label>
                     <Select
                       disabled={isPending}
                       value={form.preferredLanguage}
                       onValueChange={(val) => handleToggle("preferredLanguage", val)}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="preferredLanguage">
                         <SelectValue placeholder="Select a language" />
                       </SelectTrigger>
                       <SelectContent>
@@ -426,13 +427,13 @@ export default function SettingsClient({ userId, user, settings }) {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Voice Language</Label>
+                    <Label htmlFor="preferredVoiceLanguage">Voice Language</Label>
                     <Select
                       disabled={isPending}
                       value={form.preferredVoiceLanguage}
                       onValueChange={(val) => handleToggle("preferredVoiceLanguage", val)}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="preferredVoiceLanguage">
                         <SelectValue placeholder="Select a voice language" />
                       </SelectTrigger>
                       <SelectContent>
