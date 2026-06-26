@@ -868,7 +868,7 @@ export async function evaluateVoiceAnswer(question, transcribedAnswer) {
 
   const voiceLimit = await checkRateLimit(userId, "voiceEvaluation");
   if (!voiceLimit.allowed) {
-    return { success: false, error: Voice evaluation limit reached. Resets in . };
+    return { success: false, error: `Voice evaluation limit reached. Resets in ${formatResetTime(voiceLimit.resetAt)}.` };
   }
 
   const prompt = buildSecurePrompt({
