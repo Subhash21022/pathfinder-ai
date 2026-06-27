@@ -8,10 +8,21 @@ import { getAuthenticatedUser } from "@/lib/auth-user";
 import { revalidatePath } from "next/cache";
 import { buildSecurePrompt, parseAIJson } from "@/lib/prompt-safety";
 import { generateGeminiContent } from "@/lib/gemini";
+import { checkRateLimit, formatResetTime } from "@/lib/rate-limit-actions";
 
 export async function calculateRate(skills, experience, targetIncome) {
   const { userId } = await auth();
   if (!userId) return { success: false, errors: { _form: ["Unauthorized"] } };
+
+  const limit = await checkRateLimit(userId, "freelanceRate");
+  if (!limit.allowed) {
+    return {
+      success: false,
+      errors: {
+        _form: [`Freelance rate calculation limit reached. Resets in ${formatResetTime(limit.resetAt)}.`],
+      },
+    };
+  }
 
   const user = await getAuthenticatedUser(userId);
   if (!user) return createErrorResponse("User not found");
