@@ -55,6 +55,7 @@ model User {
   roadmaps             Roadmap[]
   jobApplications      JobApplication[]
   linkedinOptimizations LinkedInOptimization[]
+  githubAnalyses       GithubAnalysis[]
   networkingEmails     NetworkingEmail[]
   projectIdeas         ProjectIdea[]
   resumeGenerations    ResumeGeneration[]
@@ -332,6 +333,18 @@ model LinkedInOptimization {
   userId         String
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   profileContent String   @db.Text
+  analysis       Json
+  createdAt      DateTime @default(now())
+
+  @@index([userId])
+}
+
+model GithubAnalysis {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  githubUrl      String?  @db.Text
+  profileContent String?  @db.Text
   analysis       Json
   createdAt      DateTime @default(now())
 
