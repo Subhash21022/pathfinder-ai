@@ -12,7 +12,7 @@ import { useTranslation } from "@/hooks/use-translation";
 // For V1, we'll use a standard behavioral question from translations.
 
 export default function VoiceCoachPage() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const QUESTION = t("interviewQuestion");
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -33,6 +33,7 @@ export default function VoiceCoachPage() {
         recognitionRef.current = new SpeechRecognition();
         recognitionRef.current.continuous = true;
         recognitionRef.current.interimResults = true;
+        recognitionRef.current.lang = language === "hi" ? "hi-IN" : "en-US";
 
         recognitionRef.current.onresult = (event) => {
           let currentTranscript = "";
@@ -48,7 +49,7 @@ export default function VoiceCoachPage() {
         };
       }
     }
-  }, []);
+  }, [language, t]);
 
   const toggleRecording = () => {
     if (!speechSupported) return;
