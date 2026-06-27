@@ -18,7 +18,7 @@ export async function compareOffers(offers) {
   const user = await db.user.findUnique({ where: { clerkUserId: userId } });
   if (!user) return createErrorResponse("User not found");
 
-  const rateLimitResult = await checkRateLimit(user.id, "offerComparer");
+  const rateLimitResult = await checkRateLimit(userId, "offerComparer");
   if (!rateLimitResult.allowed) {
     return {
       success: false,
