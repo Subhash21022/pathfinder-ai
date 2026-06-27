@@ -100,6 +100,7 @@ IMPORTANT: Return ONLY valid JSON. No markdown, no explanation outside the JSON.
 
     const cacheKey = generateCacheKey(
       "ats",
+      userId,
       resumeContent,
       jobDescription,
       jobTitle,
