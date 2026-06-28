@@ -587,7 +587,6 @@ Return ONLY a valid JSON object matching this schema. Do not output any markdown
     const cacheKey = generateCacheKey("quiz-session", userId, sessionId);
     await cacheStore.set(cacheKey, questions, QUIZ_CACHE_TTL_MS);
 
-    return { sessionId, questions };
     return { sessionId, questions, isFallback };
   } catch (error) {
     return handleServerError(error, "interview");
@@ -604,12 +603,6 @@ export async function saveQuizResult(sessionId, answers, category = "Technical")
 
     if (!sessionId) {
       throw new Error("Session ID is required.");
-    }
-
-    const cacheKey = generateCacheKey("quiz-session", userId, sessionId);
-    const questions = await cacheStore.get(cacheKey);
-    if (!questions) {
-      throw new Error("Quiz session expired or not found. Please start a new quiz.");
     }
 
     const validation = validateInput(quizResultSaveSessionSchema, { sessionId, answers, category });
@@ -688,7 +681,6 @@ export async function saveQuizResult(sessionId, answers, category = "Technical")
       : 0;
 
     let improvementTip = null;
-    const profileContext = buildUserProfileContext(user);
 
     if (wrongAnswers.length > 0) {
       const wrongText = wrongAnswers

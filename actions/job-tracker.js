@@ -333,7 +333,7 @@ export async function syncJobApplicationsFromEmail() {
 
     revalidatePath("/job-tracker");
     revalidatePath("/dashboard");
-    return { success: true, message: \`Synced! Added \${addedCount}, Updated \${updatedCount} applications.\` };
+    return { success: true, message: `Synced! Added ${addedCount}, Updated ${updatedCount} applications.` };
   } catch (error) {
     return handleServerError(error, "job-tracker");
   }
