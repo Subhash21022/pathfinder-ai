@@ -4,6 +4,7 @@ import { runAiGeneration } from "@/lib/ai-pipeline";
 import { getUserHistory } from "@/lib/history-query";
 import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
+import { createPromptConfig } from "@/lib/prompt-config";
 import { revalidatePath } from "next/cache";
 import { createErrorResponse } from "@/lib/action-errors";
 import { getAuthenticatedUserId } from "@/lib/auth-userid";
@@ -23,7 +24,8 @@ export async function generatePivotStrategy(currentRole, targetRole) {
     return { success: false, errors: { _form: ["Both current and target roles are required."] } };
   }
 
-  const prompt = buildSecurePrompt({
+  const prompt = buildSecurePrompt(
+  createPromptConfig({
     context: "You are an expert career transition coach.",
     task: `Analyze a career pivot from '${currentRole}' to '${targetRole}'. 
     Identify the hidden transferable skills the candidate already has, the major skill gaps they need to close, and a step-by-step roadmap to make the transition.`,
@@ -47,7 +49,8 @@ export async function generatePivotStrategy(currentRole, targetRole) {
     { "step": "Phase 3: Networking & Application", "action": "How to position yourself" }
   ]
 }`,
-  });
+  })
+);
 
   try {
     const aiResult = await runAiGeneration(prompt);

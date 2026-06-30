@@ -7,6 +7,7 @@ import { auth } from "@clerk/nextjs/server";
 import { createErrorResponse } from "@/lib/action-errors";
 import { revalidatePath } from "next/cache";
 import { getAuthenticatedUserId } from "@/lib/auth-userid";
+import { createPromptConfig } from "@/lib/prompt-config";
 import { buildSecurePrompt, parseAIJson } from "@/lib/prompt-safety";
 import { generateGeminiContent } from "@/lib/gemini";
 import { UNAUTHORIZED_RESPONSE } from "@/lib/auth-errors";
@@ -23,16 +24,23 @@ export async function planCareerBreak(duration, reason, returnGoals) {
     return { success: false, errors: { _form: ["Duration, reason, and return goals are required."] } };
   }
 
-  const prompt = buildSecurePrompt({
-    context: "You are a Career Strategist who helps professionals take sabbaticals, parental leave, or health breaks without derailing their career.",
+  const prompt = buildSecurePrompt(
+  createPromptConfig({
+    context:
+      "You are a Career Strategist who helps professionals take sabbaticals, parental leave, or health breaks without derailing their career.",
+
     task: `Analyze the user's plan to take a career break.
+
     Generate a graceful exit plan for their current role, strategies to stay relevant during the break, and the exact wording to use on their resume and LinkedIn to explain the gap when they return to the workforce.`,
+
     untrustedData: [
       { label: "duration", value: duration, maxLength: 100 },
       { label: "reason", value: reason, maxLength: 1000 },
       { label: "returnGoals", value: returnGoals, maxLength: 1000 },
     ],
+
     outputRules: `Provide the output in the following JSON format ONLY:
+
 {
   "handoffPlan": ["Action 1 for leaving gracefully", "Action 2"],
   "stayingRelevant": ["Tip 1 for during the break", "Tip 2"],
@@ -40,7 +48,8 @@ export async function planCareerBreak(duration, reason, returnGoals) {
   "linkedinHeadline": "A suggested LinkedIn headline or summary addition.",
   "interviewScript": "How to answer 'Can you explain the gap in your resume?' in a future interview."
 }`,
-  });
+  })
+);
 
   try {
     const aiResult = await runAiGeneration(prompt);
