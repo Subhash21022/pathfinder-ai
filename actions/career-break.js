@@ -1,5 +1,6 @@
 "use server";
 import { handleServerError } from "@/lib/error-handler";
+import { runAiGeneration } from "@/lib/ai-pipeline";
 import { getUserHistory } from "@/lib/history-query";
 import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
@@ -42,7 +43,7 @@ export async function planCareerBreak(duration, reason, returnGoals) {
   });
 
   try {
-    const aiResult = await generateGeminiContent(prompt);
+    const aiResult = await runAiGeneration(prompt);
     const parsedData = parseAIJson(aiResult.response.text());
 
     const record = await db.careerBreakPlan.create({
