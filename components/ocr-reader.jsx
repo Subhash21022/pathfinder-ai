@@ -87,22 +87,14 @@ export default function OCRReader() {
   const processImage = async (imageUrl) => {
     setIsProcessing(true);
     setExtractedText("");
+    let worker = null;
     try {
       // Stop camera stream to freeze the frame completely if needed,
       // but we already captured to canvas. We can stop camera to save battery,
       // but let's keep it simple and just show the captured image.
       stopCamera();
 
-      // Reuse or create a worker for the selected language
-      let worker = workerRef.current;
-      if (!worker) {
-        worker = await createWorker(language);
-        workerRef.current = worker;
-        workerLangRef.current = language;
-      } else if (workerLangRef.current !== language) {
-        await worker.reinitialize(language);
-        workerLangRef.current = language;
-      }
+      worker = await createWorker(language);
       
       const ret = await worker.recognize(imageUrl);
       
@@ -116,6 +108,9 @@ export default function OCRReader() {
       console.error("OCR Error:", error);
       toast.error("Failed to extract text. Please try again.");
     } finally {
+      if (worker) {
+        await worker.terminate();
+      }
       setIsProcessing(false);
     }
   };
