@@ -105,7 +105,6 @@ model User {
   careerDecisionSimulations CareerDecisionSimulation[]
   mockInterviewSessions MockInterviewSession[]
   issues                Issue[]
-  agentRuns             AgentRun[]
 }
 
 model Assessment {
@@ -887,26 +886,4 @@ model Issue {
   updatedAt   DateTime @updatedAt
 
   @@index([userId])
-}
-
-enum AgentRunStatus {
-  Running
-  Completed
-  Failed
-  Cancelled
-}
-
-model AgentRun {
-  id             String   @id @default(cuid())
-  userId         String
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  agentName      String
-  userPrompt     String   @db.Text
-  output         Json?
-  status         AgentRunStatus   // "Running", "Completed", "Failed", "Cancelled"
-  errorMessage   String?  @db.Text
-  startedAt      DateTime @default(now())
-  completedAt    DateTime?
-  
-  @@index([userId, startedAt(sort: Desc)])
 }

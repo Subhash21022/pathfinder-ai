@@ -75,8 +75,7 @@ import {
   RocketIcon,
   Crown,
   PenLine,
-  Split,
-  History
+  Split
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/misc/utils";
@@ -171,7 +170,6 @@ const MENU_GROUPS = [
   {
     title: "System",
     items: [
-      { href: "/agent-history", label: "Agent History", icon: <History className="h-4 w-4" />, shortcut: "" },
       { href: "/settings", label: "Settings", icon: <Settings className="h-4 w-4" />, shortcut: "" },
     ]
   }
